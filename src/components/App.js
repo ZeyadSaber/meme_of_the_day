@@ -32,13 +32,15 @@ class App extends Component {
     const accounts = await web3.eth.getAccounts()
     this.setState({ account: accounts[0] })
     const networkId = await web3.eth.net.getId()
-    const networkData = Meme.networks[networkId]
+    const networkData = Meme.networks[5777]
     if(networkData) {
       const contract = web3.eth.Contract(Meme.abi, networkData.address)
       this.setState({ contract })
       const memeHash = await contract.methods.get().call()
       this.setState({ memeHash })
+      console.log(contract)
     } else {
+      console.log(Meme.networks[networkId])
       window.alert('Smart contract not deployed to detected network.')
     }
   }
@@ -66,19 +68,23 @@ class App extends Component {
     }
   }
 
-  onSubmit = (event) => {
+  onSubmit = async (event) => {
     event.preventDefault()
     console.log("Submitting file to ipfs...")
-    ipfs.add(this.state.buffer, (error, result) => {
-      console.log('Ipfs result', result)
-      if(error) {
-        console.error(error)
-        return
-      }
-       this.state.contract.methods.set(result[0].hash).send({ from: this.state.account }).then((r) => {
-         return this.setState({ memeHash: result[0].hash })
-       })
-    })
+    // ipfs.add(this.state.buffer, (error, result) => {
+    //   console.log('Ipfs result', result)
+    //   if(error) {
+    //     console.error(error)
+    //     return
+    //   }
+    //   this.state.contract.methods.set(result[0].hash).send({ from: this.state.account }).then((r) => {
+    //     return this.setState({ memeHash: result[0].hash })
+    //     })
+    // })
+    const file = await ipfs.add(this.state.buffer)
+    this.state.contract.methods.set(file[0].hash).send({ from: this.state.account })
+    this.setState({ memeHash: file[0].hash })
+    console.log(file[0].hash)
   }
 
   render() {
