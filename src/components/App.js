@@ -7,7 +7,6 @@ const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient({ host: 'ipfs.infura.io', port: 5001, protocol: 'https' }) // leaving out the arguments will default to these values
 
 class App extends Component {
-
   async componentWillMount() {
     await this.loadWeb3()
     await this.loadBlockchainData()
@@ -32,7 +31,7 @@ class App extends Component {
     const accounts = await web3.eth.getAccounts()
     this.setState({ account: accounts[0] })
     const networkId = await web3.eth.net.getId()
-    const networkData = Meme.networks[5777]
+    const networkData = Meme.networks[networkId]
     if(networkData) {
       const contract = web3.eth.Contract(Meme.abi, networkData.address)
       this.setState({ contract })
@@ -64,27 +63,24 @@ class App extends Component {
     reader.readAsArrayBuffer(file)
     reader.onloadend = () => {
       this.setState({ buffer: Buffer(reader.result) })
-      console.log('buffer', this.state.buffer)
+      // console.log('buffer', this.state.buffer)
     }
   }
 
-  onSubmit = async (event) => {
+  onSubmit = (event) => {
     event.preventDefault()
     console.log("Submitting file to ipfs...")
-    // ipfs.add(this.state.buffer, (error, result) => {
-    //   console.log('Ipfs result', result)
-    //   if(error) {
-    //     console.error(error)
-    //     return
-    //   }
-    //   this.state.contract.methods.set(result[0].hash).send({ from: this.state.account }).then((r) => {
-    //     return this.setState({ memeHash: result[0].hash })
-    //     })
-    // })
-    const file = await ipfs.add(this.state.buffer)
-    this.state.contract.methods.set(file[0].hash).send({ from: this.state.account })
-    this.setState({ memeHash: file[0].hash })
-    console.log(file[0].hash)
+    ipfs.add(this.state.buffer, (error, result) => {
+      console.log('Ipfs result', result)
+      const memeHash = result[0].hash
+      if(error) {
+        console.error(error)
+        return
+      }
+        this.state.contract.methods.set(memeHash).send({ from: this.state.account }).then((r) => {
+        return this.setState({ memeHash})
+        })
+    })
   }
 
   render() {
