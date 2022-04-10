@@ -14,8 +14,16 @@ class App extends Component {
 
   async loadWeb3() {
     if (window.ethereum) {
-      window.web3 = new Web3(window.ethereum)
-      await window.ethereum.enable()
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        setAccounts(accounts);
+      } catch (error) {
+        if (error.code === 4001) {
+          // User rejected request
+        }
+    
+        setError(error);
+      }
     }
     else if (window.web3) {
       window.web3 = new Web3(window.web3.currentProvider)
@@ -69,7 +77,7 @@ class App extends Component {
 
   onSubmit = (event) => {
     event.preventDefault()
-    console.log("Submitting file to ipfs...")
+    // console.log("Submitting file to ipfs...")
     ipfs.add(this.state.buffer, (error, result) => {
       console.log('Ipfs result', result)
       const memeHash = result[0].hash
