@@ -14,29 +14,29 @@ class App extends Component {
 
   async loadWeb3() {
     if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setAccounts(accounts);
-      } catch (error) {
-        if (error.code === 4001) {
-          // User rejected request
-        }
-    
-        setError(error);
-      }
+      App.web3Provider = window.ethereum;
+      // try {
+      //   // Request account access
+      //   await window.ethereum.enable();
+      // } catch (error) {
+      //   // User denied account access...
+      //   console.error("User denied account access")
+      // }
     }
+    // Legacy dapp browsers...
     else if (window.web3) {
-      window.web3 = new Web3(window.web3.currentProvider)
+      App.web3Provider = window.web3.currentProvider;
     }
+    // If no injected web3 instance is detected, fall back to Ganache
     else {
-      window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+      App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
     }
   }
 
   async loadBlockchainData() {
-    const web3 = window.web3
+    const web3 = new Web3(App.web3Provider)
     // Load account
-    const accounts = await web3.eth.getAccounts()
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
     this.setState({ account: accounts[0] })
     const networkId = await web3.eth.net.getId()
     const networkData = Meme.networks[networkId]
@@ -77,18 +77,21 @@ class App extends Component {
 
   onSubmit = (event) => {
     event.preventDefault()
-    // console.log("Submitting file to ipfs...")
+    console.log("Submitting file to ipfs...")
     ipfs.add(this.state.buffer, (error, result) => {
       console.log('Ipfs result', result)
-      const memeHash = result[0].hash
       if(error) {
         console.error(error)
         return
       }
-        this.state.contract.methods.set(memeHash).send({ from: this.state.account }).then((r) => {
-        return this.setState({ memeHash})
+      this.state.contract.methods.set(result[0].hash).send({ from: this.state.account }).then((r) => {
+        return this.setState({ memeHash: result[0].hash })
         })
     })
+    console.log("here")
+    // const file = await ipfs.add(this.state.buffer)
+    // this.state.contract.methods.set(file[0].hash).send({ from: this.state.account })
+    // this.setState({ memeHash: file[0].hash })
   }
 
   render() {
